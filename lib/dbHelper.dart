@@ -19,11 +19,7 @@ class DBHelper {
   Future<int> insertUser(User user) async {
     Database db = await initDatabase();
 
-    /* Map<String, Object?> values={
-      "FirstName":user.FirstName,
-      "LastName":user.LastName,
-      "Email":user.Email,
-    };*/
+
     return db.insert("User", user.toMap());
   }
 

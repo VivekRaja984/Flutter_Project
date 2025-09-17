@@ -121,9 +121,14 @@ class _loginState extends State<login> {
                 },
               ),
               SizedBox(height: 4.0),
-              TextField(
-                readOnly: true,
+              TextFormField(
                 controller: datecontroller,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: "Date of Birth",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
                 onTap: () async {
                   DateTime? pickedDate = await showDatePicker(
                     context: context,
@@ -132,13 +137,15 @@ class _loginState extends State<login> {
                     lastDate: DateTime.now(),
                   );
                   if (pickedDate != null) {
-                    selectedDOB = pickedDate; // store real DateTime
-                    datecontroller.text =
-                        DateFormat("dd/MM/yyyy").format(selectedDOB);
-                    setState(() {});
+                    setState(() {
+                      selectedDOB = pickedDate;
+                      datecontroller.text =
+                          DateFormat("dd/MM/yyyy").format(selectedDOB);
+                    });
                   }
                 },
               ),
+
 
               SizedBox(height: 4.0),
               Container(
@@ -274,27 +281,47 @@ class _loginState extends State<login> {
                 },
               ),
               SizedBox(height: 4.0),
-              ElevatedButton(
-                onPressed: () {
-                 insertUser();
-                },
-                child: Text("Submit"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      insertUser();
+                    },
+                    style: ElevatedButton.styleFrom(
+
+                      backgroundColor: Colors.blue,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      "Submit",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 20,),
+                  ElevatedButton(
+                    onPressed: () {
+                      clear();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color:Colors.white),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 4.0),
-              ElevatedButton(
-                onPressed: () {
-                  fullNameController.clear();
-                  emailController.clear();
-                  mobileController.clear();
-                  dobController.clear();
-                  cityController.clear();
-                  genderController.clear();
-                  hobbiesController.clear();
-                  passwordController.clear();
-                  confirmPasswordController.clear();
-                },
-                child: Text("Clear"),
-              ),
+
+
             ],
           ),
         ),
@@ -312,13 +339,9 @@ class _loginState extends State<login> {
     hobbiesController.clear();
     passwordController.clear();
     confirmPasswordController.clear();
-
-    // reset selections
     selectedCity = null;
     genderGroupValue = "Male";
     selectedDOB = DateTime.now();
-
-    // reset hobbies
     for (var item in hobbies) {
       item["value"] = false;
     }
@@ -330,8 +353,7 @@ class _loginState extends State<login> {
   void setUserData() {
     if (widget.user != null) {
 
-      fullNameController.text = widget.user!.FirstName;
-      fullNameController.text=widget.user!.LastName;
+      fullNameController.text = "${widget.user!.FirstName} ${widget.user!.LastName}".trim();
       emailController.text = widget.user!.Email;
       mobileController.text = widget.user!.Mobile;
       selectedCity = widget.user!.City;
@@ -347,8 +369,9 @@ class _loginState extends State<login> {
     /* List<User> listUser=await db.getAllUser();
     print(listUser[0].toString());*/
     User user = User();
-    user.FirstName = fullNameController.text;
-    user.LastName=fullNameController.text;
+    List<String> parts = fullNameController.text.trim().split(" ");
+    user.FirstName = parts.isNotEmpty ? parts.first : "";
+    user.LastName  = parts.length > 1 ? parts.sublist(1).join(" ") : "";
     user.Email = emailController.text;
     user.Hobbies = jsonEncode(selectedHobbies);
     user.Gender = genderGroupValue;

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:login/dbHelper.dart';
 import 'package:login/login.dart';
 import 'package:login/user.dart';
+import 'package:intl/intl.dart';
+
 
 class UserList extends StatefulWidget {
   bool fromFav;
@@ -42,15 +44,17 @@ class _UserListState extends State<UserList> {
                           children: [
                             label(
                               icon: Icons.person,
-                              txt:
-                              "${users[index].FirstName}",
+                              txt: "${users[index].FirstName} ${users[index].LastName}".trim(),
                             ),
+
                             label(
                               icon: Icons.location_city,
                               txt: users[index].City,
                             ),
                             label(icon: Icons.phone, txt: users[index].Mobile),
                             label(icon: Icons.mail, txt: users[index].Email),
+                            label(icon:Icons.date_range,txt: DateFormat("dd/MM/yyyy").format(DateTime.parse(users[index].DOB))),
+                            label(icon: Icons.male,txt: users[index].Gender),
                           ],
                         ),
                       ),
@@ -89,11 +93,35 @@ class _UserListState extends State<UserList> {
                           ),
                           IconButton(
                             onPressed: () {
-                              dbHelper.deleteUser(users[index].UserID);
-                              setState(() {});
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text("Confirm Delete"),
+                                    content: Text("Are you sure you want to delete this user?"),
+                                    actions: [
+                                      TextButton(
+                                        child: Text("Cancel"),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                      TextButton(
+                                        child: Text("Delete", style: TextStyle(color: Colors.red)),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                          dbHelper.deleteUser(users[index].UserID);
+                                          setState(() {});
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
                             },
                             icon: Icon(Icons.delete),
                           ),
+
                         ],
                       ),
                     ],
