@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:login/dbHelper.dart';
+import 'package:login/user.dart';
+import 'package:login/insertUser.dart';
+import 'dart:convert';
 
 class login extends StatefulWidget {
-  const login({super.key});
+
+    User? user;
+
+   login({this.user});
 
   @override
   State<login> createState() => _loginState();
@@ -19,7 +26,10 @@ class _loginState extends State<login> {
   var passwordController = TextEditingController();
   var confirmPasswordController = TextEditingController();
 
-  TextEditingController datecontroller=TextEditingController();
+  DateTime selectedDOB = DateTime.now();
+  List<String> selectedHobbies = [];
+
+  TextEditingController datecontroller = TextEditingController();
 
   var formKey = GlobalKey<FormState>();
   List<Map<String, dynamic>> hobbies = [
@@ -37,6 +47,16 @@ class _loginState extends State<login> {
   ];
   String? selectedCity;
   String genderGroupValue = "Male";
+
+  @override
+  void initState() {
+    super.initState();
+
+    setUserData();
+
+    datecontroller.text = DateFormat("dd/MM/yyyy").format(selectedDOB);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -105,20 +125,21 @@ class _loginState extends State<login> {
                 readOnly: true,
                 controller: datecontroller,
                 onTap: () async {
-                  DateTime? selectedDate= await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(1925),
-                      lastDate: DateTime.now());
-                  if(selectedDate!=null)
-                    {
-                      datecontroller.text=DateFormat("dd/MM/yyyy").format(selectedDate);
-                      setState(() {
-
-                      });
-                    }
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDOB,
+                    firstDate: DateTime(1925),
+                    lastDate: DateTime.now(),
+                  );
+                  if (pickedDate != null) {
+                    selectedDOB = pickedDate; // store real DateTime
+                    datecontroller.text =
+                        DateFormat("dd/MM/yyyy").format(selectedDOB);
+                    setState(() {});
+                  }
                 },
               ),
+
               SizedBox(height: 4.0),
               Container(
                 margin: EdgeInsets.all(2),
@@ -200,7 +221,7 @@ class _loginState extends State<login> {
                   border: Border.all(),
                   borderRadius: BorderRadius.circular(5),
                 ),
-                child:Column(
+                child: Column(
                   children: hobbies.map((item) {
                     return CheckboxListTile(
                       controlAffinity: ListTileControlAffinity.leading,
@@ -208,8 +229,14 @@ class _loginState extends State<login> {
                       value: item["value"],
                       onChanged: (value) {
                         item["value"] = value;
+                        if (value == true) {
+                          selectedHobbies.add(item["title"]);
+                        } else {
+                          selectedHobbies.remove(item["title"]);
+                        }
                         setState(() {});
                       },
+
                     );
                   }).toList(),
                 ),
@@ -249,17 +276,7 @@ class _loginState extends State<login> {
               SizedBox(height: 4.0),
               ElevatedButton(
                 onPressed: () {
-                  if (formKey.currentState!.validate()) {
-                    print("Full Name: ${fullNameController.text}");
-                    print("Email: ${emailController.text}");
-                    print("Mobile: ${mobileController.text}");
-                    print("DOB: ${datecontroller.text}");
-                    print("City: ${cityController.text}");
-                    print("Gender: ${genderController.text}");
-                    print("Hobbies: ${hobbiesController.text}");
-                    print("Password: ${passwordController.text}");
-                    print("Password: ${confirmPasswordController.text}");
-                  }
+                 insertUser();
                 },
                 child: Text("Submit"),
               ),
@@ -283,5 +300,85 @@ class _loginState extends State<login> {
         ),
       ),
     );
+  }
+
+  void clear() {
+    fullNameController.clear();
+    emailController.clear();
+    mobileController.clear();
+    datecontroller.clear();
+    cityController.clear();
+    genderController.clear();
+    hobbiesController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
+
+    // reset selections
+    selectedCity = null;
+    genderGroupValue = "Male";
+    selectedDOB = DateTime.now();
+
+    // reset hobbies
+    for (var item in hobbies) {
+      item["value"] = false;
+    }
+    selectedHobbies.clear();
+
+    setState(() {});
+  }
+
+  void setUserData() {
+    if (widget.user != null) {
+
+      fullNameController.text = widget.user!.FirstName;
+      fullNameController.text=widget.user!.LastName;
+      emailController.text = widget.user!.Email;
+      mobileController.text = widget.user!.Mobile;
+      selectedCity = widget.user!.City;
+      passwordController.text = widget.user!.Password;
+      selectedHobbies = List<String>.from(jsonDecode(widget.user!.Hobbies));
+      selectedDOB = DateTime.parse(widget.user!.DOB);
+      genderGroupValue = widget.user!.Gender;
+    }
+  }
+
+  Future<void> insertUser() async {
+    DBHelper db = DBHelper();
+    /* List<User> listUser=await db.getAllUser();
+    print(listUser[0].toString());*/
+    User user = User();
+    user.FirstName = fullNameController.text;
+    user.LastName=fullNameController.text;
+    user.Email = emailController.text;
+    user.Hobbies = jsonEncode(selectedHobbies);
+    user.Gender = genderGroupValue;
+    user.City=selectedCity ?? "";
+    user.Password = passwordController.text;
+    user.DOB = selectedDOB.toIso8601String();
+    user.Mobile = mobileController.text;
+
+    if (widget.user == null) {
+      db.insertUser(user).then((value) {
+        if (value != 0) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Data add successfully!!!")));
+          clear();
+          setState(() {});
+        }
+      });
+    } else {
+      user.UserID = widget.user!.UserID;
+      user.isFavourite = widget.user!.isFavourite;
+      db.updateUser(user).then((value) {
+        if (value != 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Data Update successfully!!!")),
+          );
+          clear();
+          Navigator.pop(context);
+        }
+      });
+    }
   }
 }
